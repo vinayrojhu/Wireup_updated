@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow create: if isSelf(userId);
+      allow read: if signedIn();
+      allow update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    match /tweets/{tweetId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /news/{newsId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /flipnews/{newsId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /YTvideo/{videoId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /PendingUsers/{requestId} {
+      allow create: if signedIn() && request.resource.data.uuid == request.auth.uid;
+      allow read, update, delete: if false;
+    }
+
+    match /VerifiedUsers/{verificationId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

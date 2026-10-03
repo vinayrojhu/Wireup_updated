@@ -60,14 +60,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.example.wireup.Navigation.NavigationItem
+import com.example.wireup.model.Comment
 import com.example.wireup.model.MUser
+import com.example.wireup.model.Tweet
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Components.CircularImage
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.example.wireup.util.DateUtil
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
@@ -77,7 +79,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentScreen(navController: NavHostController, tweetId: String) {
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val tweet by viewModel.tweet.observeAsState(null)
     val users by viewModel.users.observeAsState(initial = emptyList())
     val comments by viewModel.comment.collectAsState(initial = emptyList())
@@ -93,9 +95,8 @@ fun CommentScreen(navController: NavHostController, tweetId: String) {
 
     LaunchedEffect(tweetId) {
         viewModel.getComments(tweetId)
-    }
-    viewModel.viewModelScope.launch {
         viewModel.fetchTweet(tweetId)
+        viewModel.loadUsers()
     }
 
 
@@ -181,7 +182,7 @@ fun CommentScreen(navController: NavHostController, tweetId: String) {
 
 @Composable
 fun CommentNode(data: Comment, user: MUser?, navController : NavHostController, tweetId: String ){
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val likeResult by viewModel.likeCommentResult.observeAsState()
     val context = LocalContext.current
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()
@@ -268,7 +269,7 @@ fun CommentNode(data: Comment, user: MUser?, navController : NavHostController, 
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun MainComment(tweet: Tweet, user: MUser?, navController : NavHostController ){
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val context = LocalContext.current
     val userimage = remember { mutableStateOf<Uri?>(null) }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()

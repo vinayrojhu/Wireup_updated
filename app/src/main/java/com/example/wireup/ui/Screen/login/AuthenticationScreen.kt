@@ -39,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -69,7 +71,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.wireup.Navigation.NavigationItem
 import com.example.wireup.R
-import com.example.wireup.ui.Screen.viewmodel.LoginScreenViewModelFactory
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 
@@ -77,9 +79,11 @@ import com.google.android.gms.common.api.ApiException
 @Composable
 fun AuthenticationScreen(
     navController: NavController,
-    viewModel: LoginScreenViewModel = viewModel(factory = LoginScreenViewModelFactory(LocalContext.current as Activity))
+    viewModel: LoginScreenViewModel = hiltViewModel()
 ) {
     val showLoginForm = rememberSaveable { mutableStateOf(true) }
+    val loading by viewModel.loading.observeAsState(false)
+    val error by viewModel.error.observeAsState()
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -91,6 +95,7 @@ fun AuthenticationScreen(
                 }
             } catch (e: ApiException) {
                 Log.e("Google Sign In", "Error signing in with Google", e)
+                viewModel.reportGoogleSignInError("Google sign-in was cancelled or failed.")
             }
         }
     }
@@ -105,13 +110,13 @@ fun AuthenticationScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Spacer(modifier = Modifier.height(8.dp))
-            if (showLoginForm.value) UserForm(loading = false, isCreateAccount = false){ email, password, _ ->
+            if (showLoginForm.value) UserForm(loading = loading, isCreateAccount = false){ email, password, _ ->
                 viewModel.signInWithEmailAndPassword(email, password){
                     navController.navigate(NavigationItem.Home.route)
                 }
             }
             else {
-                UserForm(loading = false, isCreateAccount = true){email, password, name ->
+                UserForm(loading = loading, isCreateAccount = true){email, password, name ->
                     viewModel.createUserWithEmailAndPassword(email, password, name) {
                         navController.navigate(NavigationItem.Home.route)
                     }
@@ -119,11 +124,18 @@ fun AuthenticationScreen(
             }
             GoogleButton(
                 textId ="Login via Google",
-                loading = false,
+                loading = loading,
                 validInputs = true
             ){
                 val intent = viewModel.getGoogleSignInIntent()
                 launcher.launch(intent)
+            }
+            error?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
         }
 

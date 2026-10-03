@@ -40,13 +40,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.wireup.model.Follower
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 
@@ -54,7 +54,7 @@ import com.google.firebase.storage.FirebaseStorage
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun FriendsScreen(navController: NavHostController) {
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()
 
     LaunchedEffect(Unit) {

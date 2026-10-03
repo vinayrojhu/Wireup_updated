@@ -25,7 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
-import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.wireup.Navigation.AppNavHost
@@ -33,23 +33,15 @@ import com.example.wireup.Navigation.NavigationItem
 import com.example.wireup.Navigation.Screen
 import com.example.wireup.ui.Components.BottomNavItem
 import com.example.wireup.ui.Components.BottomNavigationBar
-import com.example.wireup.ui.Screen.login.LoginScreenViewModel
-import com.example.wireup.ui.Screen.viewmodel.LoginScreenViewModelFactory
 import com.example.wireup.ui.theme.WireUpTheme
 import com.google.accompanist.systemuicontroller.SystemUiController
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.google.firebase.FirebaseApp
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    private lateinit var viewModel: LoginScreenViewModel
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val viewModelFactory = LoginScreenViewModelFactory(this)
-        viewModel = ViewModelProvider(this, viewModelFactory).get(LoginScreenViewModel::class.java)
-
-        FirebaseApp.initializeApp(this)
         setContent {
             WireUpTheme {
                 SetupTransparentSystemUi(
@@ -93,41 +85,46 @@ class MainActivity : ComponentActivity() {
                                     BottomNavigationBar(
                                         items = listOf(
                                             BottomNavItem(
-                                                NavigationItem.Home.route,
-                                                Screen.HOME.name,
+                                                name = Screen.HOME.name,
+                                                route = NavigationItem.Home.route,
                                                 icon = painterResource(id = R.drawable.icons8_newspaper_48)
                                             ),
                                             BottomNavItem(
-                                                NavigationItem.FlipFlop.route,
-                                                Screen.FLIPFLOP.name,
+                                                name = Screen.FLIPFLOP.name,
+                                                route = NavigationItem.FlipFlop.route,
                                                 icon = painterResource(id = R.drawable.coin)
                                             ),
                                             BottomNavItem(
-                                                NavigationItem.Podcast.route,
-                                                Screen.PODCAST.name,
+                                                name = Screen.PODCAST.name,
+                                                route = NavigationItem.Podcast.route,
                                                 icon = painterResource(id = R.drawable.podcastfinal)
                                             ),
                                             BottomNavItem(
-                                                NavigationItem.Node.route,
-                                                Screen.NODE.name,
+                                                name = Screen.NODE.name,
+                                                route = NavigationItem.Node.route,
                                                 icon = painterResource(id = R.drawable.node_iconn)
                                             ),
                                             BottomNavItem(
-                                                NavigationItem.Profile.route,
-                                                Screen.PROFILE.name,
+                                                name = Screen.PROFILE.name,
+                                                route = NavigationItem.Profile.route,
                                                 icon = painterResource(id = R.drawable.usericon)
                                             ),
                                         ),
                                         navController = navController,
                                         onItemClick = {
                                             if (it.route == NavigationItem.Profile.route) {
-                                                navController.navigate(
-//                                                    "${NavigationItem.Profile.route}/$MY_USER_ID"
-                                                    NavigationItem.Profile.route
-                                                )
+                                                navController.navigate(NavigationItem.Profile.route) {
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                }
 
                                             } else {
-                                                navController.navigate(it.route)
+                                                navController.navigate(it.route) {
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                                }
                                             }
 
 

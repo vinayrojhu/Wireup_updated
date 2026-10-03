@@ -1,6 +1,5 @@
 package com.example.wireup.ui.Screen
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,22 +33,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.wireup.Navigation.NavigationItem
 import com.example.wireup.R
 import com.example.wireup.ui.Screen.login.LoginScreenViewModel
-import com.example.wireup.ui.Screen.viewmodel.LoginScreenViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(navController: NavHostController, viewModel: LoginScreenViewModel = createViewModel(LocalContext.current as Activity)) {
+fun SettingsScreen(navController: NavHostController, viewModel: LoginScreenViewModel = hiltViewModel()) {
     Column {
         TopAppBar(title = {
             Text(
@@ -224,6 +220,3 @@ fun SettingsScreen(navController: NavHostController, viewModel: LoginScreenViewM
 }
 
 
-fun createViewModel(activity: Activity): LoginScreenViewModel {
-    return ViewModelProvider(activity as ViewModelStoreOwner, LoginScreenViewModelFactory(activity)).get(LoginScreenViewModel::class.java)
-}

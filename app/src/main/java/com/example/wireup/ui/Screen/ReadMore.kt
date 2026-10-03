@@ -33,19 +33,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.example.wireup.R
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.example.wireup.util.DateUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReadMore(navController: NavHostController, newsId: String) {
 
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val newsData by viewModel.getNewsData(newsId).observeAsState()
 
     val time = newsData?.let { DateUtil.getDate2(it.time) }

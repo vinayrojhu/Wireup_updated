@@ -60,18 +60,18 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.example.wireup.model.MUser
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(navController: NavHostController) {
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var name by remember { mutableStateOf("") }
@@ -315,12 +315,3 @@ fun UploadImage(viewModel: UserViewModel,navController: NavHostController) {
     }
 }
 
-class UserViewModelFactory(private val firestoreRepository: FirestoreRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(UserViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return UserViewModel(firestoreRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}

@@ -37,6 +37,7 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
@@ -68,7 +70,6 @@ import com.example.wireup.model.SearchData
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Components.NewsBox3
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.example.wireup.util.DateUtil
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -79,8 +80,9 @@ import kotlinx.coroutines.launch
 fun SearchScreen(navController: NavHostController,
                  modifier: Modifier = Modifier
 ) {
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val news1 by viewModel.news1.observeAsState(initial = emptyList())
+    LaunchedEffect(Unit) { viewModel.loadNews() }
     var searchQuery = remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.observeAsState(emptyList())
     val coroutineScope = rememberCoroutineScope()

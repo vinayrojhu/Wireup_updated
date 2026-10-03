@@ -36,6 +36,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.wireup.Navigation.NavigationItem
 import com.example.wireup.ui.Components.NewsBox2
@@ -60,9 +62,10 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun HomeScreen( navController: NavHostController, viewModel: UserViewModel = viewModel()) {
+fun HomeScreen(navController: NavHostController, viewModel: UserViewModel = hiltViewModel()) {
 
     val news1 by viewModel.news1.observeAsState(initial = emptyList())
+    LaunchedEffect(Unit) { viewModel.loadNews() }
     val tabIndex = remember { mutableStateOf(0) }
     val userData by viewModel.getUserData().observeAsState()
     val username = userData?.name.toString()

@@ -46,6 +46,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.example.wireup.Navigation.NavigationItem
@@ -60,7 +61,7 @@ import com.google.firebase.storage.FirebaseStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavHostController, viewModel: UserViewModel = viewModel()) {
+fun ProfileScreen(navController: NavHostController, viewModel: UserViewModel = hiltViewModel()) {
 
     val tweets by viewModel.tweets.observeAsState(initial = emptyList())
     val users by viewModel.users.observeAsState(initial = emptyList())
@@ -83,12 +84,13 @@ fun ProfileScreen(navController: NavHostController, viewModel: UserViewModel = v
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.fetchTweetsofCurrentUser(userData?.id.toString())
+    LaunchedEffect(userData?.id) {
+        userData?.id?.let { viewModel.fetchTweetsofCurrentUser(it) }
+        viewModel.loadUsers()
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.getFollowerCount(userData?.id.toString())
+    LaunchedEffect(userData?.id) {
+        userData?.id?.let { viewModel.getFollowerCount(it) }
     }
 
     val followerCount = viewModel.followerCount.collectAsState().value

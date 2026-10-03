@@ -8,9 +8,9 @@ import com.example.wireup.model.FlipNews
 import com.example.wireup.model.MUser
 import com.example.wireup.model.NewsData1
 import com.example.wireup.model.SearchData
-import com.example.wireup.ui.Screen.Comment
-import com.example.wireup.ui.Screen.Tweet
-import com.example.wireup.ui.Screen.VideoPodcast
+import com.example.wireup.model.Comment
+import com.example.wireup.model.Tweet
+import com.example.wireup.model.VideoPodcast
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -22,8 +22,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.tasks.await
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class FirestoreRepository {
+@Singleton
+class FirestoreRepository @Inject constructor() {
     private val firestore = FirebaseFirestore.getInstance()
     private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 
@@ -206,7 +209,11 @@ class FirestoreRepository {
     fun addFollowerToUser(userId: String, followerId: String, callback: (Boolean) -> Unit) {
         firestore.collection("users").document(userId)
             .update("followers", FieldValue.arrayUnion(followerId))
-        callback(true)
+            .addOnSuccessListener { callback(true) }
+            .addOnFailureListener { exception ->
+                Log.e("FirestoreRepository", "Unable to add follower", exception)
+                callback(false)
+            }
     }
 
     suspend fun getFollowerCount(userId: String): Int {
@@ -267,7 +274,11 @@ class FirestoreRepository {
     fun addFollowingToUser(userId: String, followingId: String, callback: (Boolean) -> Unit) {
         firestore.collection("users").document(userId)
             .update("following", FieldValue.arrayUnion(followingId))
-        callback(true)
+            .addOnSuccessListener { callback(true) }
+            .addOnFailureListener { exception ->
+                Log.e("FirestoreRepository", "Unable to add following", exception)
+                callback(false)
+            }
     }
 
     suspend fun getFollowingOfUser(userId: String): List<String> {

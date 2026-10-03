@@ -71,17 +71,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.example.wireup.Navigation.NavigationItem
 import com.example.wireup.R
+import com.example.wireup.model.Comment
 import com.example.wireup.model.MUser
+import com.example.wireup.model.Tweet
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Components.BackCardContent
 import com.example.wireup.ui.Components.CircularImage
 import com.example.wireup.ui.Components.FrontCardContent
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.example.wireup.util.DateUtil
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -90,40 +92,15 @@ import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageMetadata
 import com.google.firebase.storage.StorageReference
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 
-data class Tweet(
-    val id: String = UUID.randomUUID().toString(),
-    val description: String ="",
-    val userId: String ="",
-    val comments: MutableList<Comment> = mutableListOf(),
-    val likeCount: Int = 0,
-    val retweetCount: Int = 0,
-    val bookmarkCount: Int = 0,
-    val imageUrl: String? = null,
-    val timeStamp: Long = System.currentTimeMillis()
-)
-
-
-data class Comment(
-    val id: String = UUID.randomUUID().toString(),
-    val description: String="",
-    val userId: String="",
-    val imageUrl: String? = null,
-    val likeCount: Int = 0,
-    val likes: MutableList<String> = mutableListOf(),
-    val timeStamp: Long = System.currentTimeMillis()
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NodeScreen(navController: NavHostController, viewModel: UserViewModel = viewModel()) {
+fun NodeScreen(navController: NavHostController, viewModel: UserViewModel = hiltViewModel()) {
     val tweets by viewModel.tweets.observeAsState(initial = emptyList())
     val users by viewModel.users.observeAsState(initial = emptyList())
     val userId = Firebase.auth.currentUser?.uid.toString()
@@ -147,17 +124,17 @@ fun NodeScreen(navController: NavHostController, viewModel: UserViewModel = view
         }
     }
 
-    fun isUserInList(userId: String): Boolean {
+    suspend fun isUserInList(userId: String): Boolean {
         val db = Firebase.firestore
-        return runBlocking {
-            val query = db.collection("VerifiedUsers").whereEqualTo("uuid", userId).get().await()
-            query.documents.isNotEmpty()
-        }
+        val query = db.collection("VerifiedUsers").whereEqualTo("uuid", userId).get().await()
+        return query.documents.isNotEmpty()
     }
 
 
 
     LaunchedEffect(Unit) {
+        viewModel.loadTweets()
+        viewModel.loadUsers()
         isUserInListState.value = isUserInList(userId ?: "")
     }
 
@@ -331,7 +308,7 @@ fun NodeScreen(navController: NavHostController, viewModel: UserViewModel = view
 
 @Composable
 fun MainNode(tweet: Tweet, user: MUser?, navController : NavHostController ){
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val context = LocalContext.current
     val userimage = remember { mutableStateOf<Uri?>(null) }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()
@@ -597,7 +574,7 @@ fun MainNode(tweet: Tweet, user: MUser?, navController : NavHostController ){
 
 @Composable
 fun SideNode(tweetId: String, navController : NavHostController ){
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
 
     val comments by viewModel.getCommentsFlow(tweetId).collectAsState(initial = emptyList())
     LaunchedEffect(tweetId) {
@@ -662,7 +639,7 @@ fun SideNode(tweetId: String, navController : NavHostController ){
 fun CommentBox(
     tweetId: String
 ) {
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     var showDialog by remember { mutableStateOf(false) }
     val NodeText = remember { mutableStateOf("") }
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()
@@ -708,13 +685,7 @@ fun CommentBox(
 
                     Button(onClick = {
                         val comment = Comment(description = NodeText.value, userId = currentUserId)
-                        viewModel.addComment(tweetId, comment).observeForever { isSuccess ->
-                            if (isSuccess) {
-                                // Comment added successfully
-                            } else {
-                                // Error adding comment
-                            }
-                        }
+                        viewModel.addComment(tweetId, comment)
                         showDialog = false
                     }) {
                         Text("Add")

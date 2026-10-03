@@ -4,18 +4,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
 import androidx.navigation.navArgument
-import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Screen.AboutScreen
 import com.example.wireup.ui.Screen.AccountScreen
 import com.example.wireup.ui.Screen.CommentScreen
@@ -39,7 +35,6 @@ import com.example.wireup.ui.Screen.SplashScreen
 import com.example.wireup.ui.Screen.TagsScreen
 import com.example.wireup.ui.Screen.login.AuthenticationScreen
 import com.example.wireup.ui.Screen.profile.ProfileScreen
-import com.example.wireup.ui.Screen.profile.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -48,25 +43,22 @@ fun AppNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    var isSplashScreenFinished by rememberSaveable {
-        mutableStateOf(false)
-    }
     NavHost(
         modifier = modifier,
         navController = navController,
-        startDestination = if (isSplashScreenFinished) {
-            if (FirebaseAuth.getInstance().currentUser?.email.isNullOrEmpty()){
-                NavigationItem.Authentication.route
-            }else {
-                NavigationItem.Home.route
-            }
-        } else {
-            NavigationItem.Splash.route
-        }
+        startDestination = NavigationItem.Splash.route
     ) {
         composable(NavigationItem.Splash.route){
             SplashScreen {
-                isSplashScreenFinished = true
+                val destination = if (FirebaseAuth.getInstance().currentUser == null) {
+                    NavigationItem.Authentication.route
+                } else {
+                    NavigationItem.Home.route
+                }
+                navController.navigate(destination) {
+                    popUpTo(NavigationItem.Splash.route) { inclusive = true }
+                    launchSingleTop = true
+                }
             }
         }
         composable(NavigationItem.Authentication.route , enterTransition = {
@@ -99,9 +91,7 @@ fun AppNavHost(
                 fadeOut(animationSpec = tween(durationMillis = 300)) // Quick fade out
             }
         ) {
-            HomeScreen( navController = navController, viewModel = UserViewModel(
-                FirestoreRepository()
-            ))
+            HomeScreen(navController = navController)
         }
 
 
@@ -151,9 +141,7 @@ fun AppNavHost(
                 fadeOut(animationSpec = tween(durationMillis = 300)) // Quick fade out
             }
         ) {
-            ProfileScreen( navController = navController, viewModel = UserViewModel(
-                FirestoreRepository()
-            ))
+            ProfileScreen(navController = navController)
         }
 
         composable(NavigationItem.Search.route, enterTransition = {
@@ -221,9 +209,7 @@ fun AppNavHost(
                 fadeOut(animationSpec = tween(durationMillis = 300)) // Quick fade out
             }
         ) {
-            NodeScreen(navController = navController, viewModel = UserViewModel(
-                FirestoreRepository()
-            ))
+            NodeScreen(navController = navController)
         }
         composable(NavigationItem.Friends.route, enterTransition = {
             fadeIn(animationSpec = tween(durationMillis = 300)) // Quick fade in
@@ -356,7 +342,9 @@ fun AppNavHost(
             OpenAudioPodcast(navController = navController)
         }
 
-        composable(NavigationItem.ProfileViewMode.route + "/{userId}", enterTransition = {
+        composable(NavigationItem.ProfileViewMode.route + "/{userId}",
+            deepLinks = listOf(navDeepLink { uriPattern = "https://wireup.com/user/{userId}" }),
+            enterTransition = {
             fadeIn(animationSpec = tween(durationMillis = 300)) // Quick fade in
         },
             exitTransition = {
@@ -369,7 +357,9 @@ fun AppNavHost(
                 fadeOut(animationSpec = tween(durationMillis = 300)) // Quick fade out
             }
         ) { entry ->
-            ProfileScreenViewMode(navController, entry.arguments?.getString("userId")!!)
+            entry.arguments?.getString("userId")?.let { userId ->
+                ProfileScreenViewMode(navController, userId)
+            }
         }
 
         composable(NavigationItem.Liked.route, enterTransition = {

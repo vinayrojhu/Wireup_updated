@@ -11,10 +11,10 @@ import com.example.wireup.model.FlipNews
 import com.example.wireup.model.MUser
 import com.example.wireup.model.NewsData1
 import com.example.wireup.model.SearchData
+import com.example.wireup.model.Comment
+import com.example.wireup.model.Tweet
+import com.example.wireup.model.VideoPodcast
 import com.example.wireup.repository.FirestoreRepository
-import com.example.wireup.ui.Screen.Comment
-import com.example.wireup.ui.Screen.Tweet
-import com.example.wireup.ui.Screen.VideoPodcast
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
@@ -22,12 +22,18 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
 
-class UserViewModel(private val firestoreRepository: FirestoreRepository) : ViewModel() {
+@HiltViewModel
+class UserViewModel @Inject constructor(
+    private val firestoreRepository: FirestoreRepository
+) : ViewModel() {
 
     private val _tweets = MutableLiveData<List<Tweet>>()
     val tweets: LiveData<List<Tweet>> = _tweets
@@ -70,12 +76,16 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
 
     private val _likeCommentResult = MutableLiveData<Boolean>()
     val likeCommentResult: LiveData<Boolean> get() = _likeCommentResult
+    private val _addCommentResult = MutableLiveData<Boolean>()
+    val addCommentResult: LiveData<Boolean> get() = _addCommentResult
 
     private val _commentsMap = mutableMapOf<String, MutableStateFlow<List<Comment>>>()
 
+    private suspend fun <T> LiveData<T>.awaitValue(): T = asFlow().first()
+
     fun likeComment(tweetId: String, commentId: String, userId: String) {
-        firestoreRepository.likeComment(tweetId, commentId, userId).observeForever { result ->
-            _likeCommentResult.value = result
+        viewModelScope.launch {
+            _likeCommentResult.value = firestoreRepository.likeComment(tweetId, commentId, userId).awaitValue()
         }
     }
     fun getUserData(): LiveData<MUser> {
@@ -105,32 +115,29 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
     fun updateUserProfileImage(imageUrl: String): LiveData<Boolean> {
         val uuid = FirebaseAuth.getInstance().currentUser?.uid.toString()
         val liveData = MutableLiveData<Boolean>()
-        getUserData().observeForever { userData ->
-            userData?.profileImage = imageUrl
-            updateUserData(userData).observeForever { isSuccess ->
-                liveData.value = isSuccess
-            }
+        viewModelScope.launch {
+            val userData = getUserData().awaitValue()
+            userData.profileImage = imageUrl
+            liveData.value = updateUserData(userData).awaitValue()
         }
         return liveData
     }
 
     fun deleteTweet(tweetId: String, imageUri: String) {
-        firestoreRepository.deleteTweet(tweetId, imageUri).observeForever { isSuccess ->
-            _deleteTweetStatus.value = isSuccess
+        viewModelScope.launch {
+            _deleteTweetStatus.value = firestoreRepository.deleteTweet(tweetId, imageUri).awaitValue()
         }
     }
 
     fun getComments(tweetId: String){
-        firestoreRepository.getComments(tweetId).observeForever { comments ->
-            Log.d("CommentViewmodel", "Received comments: $comments")
-            _comment.value = comments // Update the liveData value
+        viewModelScope.launch {
+            _comment.value = firestoreRepository.getComments(tweetId).awaitValue()
         }
     }
     fun getComment(tweetId: String){
         val commentsFlow = _commentsMap.getOrPut(tweetId) { MutableStateFlow(emptyList()) }
-        firestoreRepository.getComments(tweetId).observeForever { comments ->
-            Log.d("CommentV", "Received comments: $comments")
-            commentsFlow.value = comments
+        viewModelScope.launch {
+            commentsFlow.value = firestoreRepository.getComments(tweetId).awaitValue()
         }
     }
     fun getCommentsFlow(tweetId: String): StateFlow<List<Comment>> {
@@ -139,27 +146,20 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
 
 
     fun fetchTweet(tweetId: String) {
-        firestoreRepository.fetchTweetFromFirestore(tweetId).observeForever { tweet ->
-            _tweet.value = tweet
-        }
-    }
-    init {
-        fetchTweetsFromFirestore()
-        fetchUsersFromFirestore()
-        fetchNewsFromFirestore()
-        fetchFlipNews()
-        fetchYTlink()
-    }
-
-    private fun fetchYTlink() {
-        firestoreRepository.fetchYTlink().observeForever { video ->
-            _video.value = video
+        viewModelScope.launch {
+            _tweet.value = firestoreRepository.fetchTweetFromFirestore(tweetId).awaitValue()
         }
     }
 
-    private fun fetchNewsFromFirestore() {
-        firestoreRepository.fetchNewsFromFirestore().observeForever { news ->
-            _news1.value = news
+    fun loadVideoPodcasts() {
+        viewModelScope.launch {
+            _video.value = firestoreRepository.fetchYTlink().awaitValue()
+        }
+    }
+
+    fun loadNews() {
+        viewModelScope.launch {
+            _news1.value = firestoreRepository.fetchNewsFromFirestore().awaitValue()
         }
     }
 
@@ -167,46 +167,32 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
         return firestoreRepository.getNewsData(id)
     }
 
-    private fun fetchFlipNews() {
-        firestoreRepository.fetchFlipNews().observeForever { news ->
-            _flipNews.value = news
+    fun loadFlipNews() {
+        viewModelScope.launch {
+            _flipNews.value = firestoreRepository.fetchFlipNews().awaitValue()
         }
     }
 
 
-    private fun fetchTweetsFromFirestore() {
-        firestoreRepository.fetchTweetsFromFirestore().observeForever { tweets ->
-            _tweets.value = tweets
+    fun loadTweets() {
+        viewModelScope.launch {
+            _tweets.value = firestoreRepository.fetchTweetsFromFirestore().awaitValue()
         }
     }
 
-    private fun fetchUsersFromFirestore() {
-        firestoreRepository.fetchUsersFromFirestore().observeForever { users ->
-            _users.value = users
+    fun loadUsers() {
+        viewModelScope.launch {
+            _users.value = firestoreRepository.fetchUsersFromFirestore().awaitValue()
         }
     }
 
     fun addTweet(tweetText: String, imageUri: Uri? = null) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid.toString()
-        if (imageUri != null) {
-            uploadImageToStorage(imageUri).observeForever { nodeimageUrl ->
-                if (nodeimageUrl.isNotEmpty()) {
-                    val tweet = Tweet(userId = userId, description = tweetText, imageUrl = nodeimageUrl)
-                    firestoreRepository.addTweet(tweet).observeForever { isSuccess ->
-                        if (isSuccess) {
-                            fetchTweetsFromFirestore() // Update tweets state
-                        }
-                    }
-                } else {
-                    Log.d("ViewModel", "Error uploading image")
-                }
-            }
-        } else {
-            val tweet = Tweet(userId = userId, description = tweetText, imageUrl = null)
-            firestoreRepository.addTweet(tweet).observeForever { isSuccess ->
-                if (isSuccess) {
-                    fetchTweetsFromFirestore() // Update tweets state
-                }
+        viewModelScope.launch {
+            val imageUrl = imageUri?.let { uploadImageToStorage(it).awaitValue() }
+            if (imageUrl != null && imageUrl.isEmpty()) return@launch
+            if (firestoreRepository.addTweet(Tweet(userId = userId, description = tweetText, imageUrl = imageUrl)).awaitValue()) {
+                loadTweets()
             }
         }
     }
@@ -229,14 +215,14 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
     }
 
     fun checkUniqueIdAvailability(uniqueId: String) {
-        firestoreRepository.checkUniqueIdAvailability(uniqueId).observeForever { available ->
-            _isUniqueIdAvailable.value = available
+        viewModelScope.launch {
+            _isUniqueIdAvailable.value = firestoreRepository.checkUniqueIdAvailability(uniqueId).awaitValue()
         }
     }
 
     fun addFollowerToUser(userId: String, followerId: String, /*followerName: String, followerImage: String*/) {
         firestoreRepository.addFollowerToUser(userId, followerId) { success ->
-            _followerCount.value = (_followerCount.value ?: 0) + 1
+            if (success) _followerCount.value += 1
         }
     }
 
@@ -258,9 +244,7 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
         viewModelScope.launch {
             val followers = getFollowingsOfUser2(userId)
             if (followers.isNotEmpty()) {
-                firestoreRepository.fetchTweetsFromFollowedUsers(followers).observeForever { tweets ->
-                    _tweets.value = tweets
-                }
+                _tweets.value = firestoreRepository.fetchTweetsFromFollowedUsers(followers).awaitValue()
             }
         }
     }
@@ -278,8 +262,8 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
     }
 
     fun fetchTweetsofCurrentUser(userId: String) {
-        firestoreRepository.fetchTweetsofCurrentUser(userId).observeForever { tweets ->
-            _tweets.value = tweets
+        viewModelScope.launch {
+            _tweets.value = firestoreRepository.fetchTweetsofCurrentUser(userId).awaitValue()
         }
     }
 
@@ -299,8 +283,10 @@ class UserViewModel(private val firestoreRepository: FirestoreRepository) : View
         callback()
     }
 
-    fun addComment(tweetId: String, comment: Comment): LiveData<Boolean> {
-        return firestoreRepository.addComment(tweetId, comment)
+    fun addComment(tweetId: String, comment: Comment) {
+        viewModelScope.launch {
+            _addCommentResult.value = firestoreRepository.addComment(tweetId, comment).awaitValue()
+        }
     }
 
     fun checkIfTweetHasComments(tweetId: String): LiveData<Boolean> {

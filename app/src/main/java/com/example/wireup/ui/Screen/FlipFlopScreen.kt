@@ -21,11 +21,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Components.FlipCard
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.PagerState
@@ -37,11 +37,12 @@ import com.google.accompanist.pager.PagerState
 @Composable
 fun FlipFlopScreen(navController: NavHostController) {
     val context = LocalContext.current
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val flipNews by viewModel.flipNews.observeAsState(initial = emptyList())
 
 
     LaunchedEffect(Unit) {
+        viewModel.loadFlipNews()
         Toast.makeText(context, "Swipe for different news", Toast.LENGTH_SHORT).show()
     }
 

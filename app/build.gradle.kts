@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id ("kotlin-android")
     id("com.google.dagger.hilt.android")
     id("kotlin-kapt")
     id("com.google.gms.google-services")
@@ -26,7 +25,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -42,7 +41,6 @@ android {
     }
     buildFeatures {
         compose = true
-        viewBinding = true            //
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
@@ -64,14 +62,9 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
+    implementation("androidx.compose.material:material")
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.cardview)
-    implementation(libs.firebase.auth)
-    implementation(libs.firebase.database.ktx)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.benchmark.macro)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -83,37 +76,24 @@ dependencies {
 
 
     //    implementation 'androidx.compose.material:material-icons-extended'
-    implementation ("androidx.navigation:navigation-compose:2.7.7")
+    implementation(libs.androidx.navigation.compose)
     implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
-    //retrofit
-    implementation ("com.squareup.retrofit2:retrofit:2.10.0")
-    implementation ("com.squareup.retrofit2:converter-gson:2.10.0")
     //coil
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation ("com.google.accompanist:accompanist-systemuicontroller:0.28.0")
     //hilt
-    implementation ("com.google.dagger:hilt-android:2.51.1")
-    kapt ("com.google.dagger:hilt-android-compiler:2.49")
+    implementation ("com.google.dagger:hilt-android:2.49")
+    kapt ("com.google.dagger:hilt-compiler:2.49")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     implementation (libs.androidx.animation)
-
-    implementation (libs.androidx.navigation.compose.v240alpha08)
-
-    implementation (libs.google.exoplayer)
-
-
-    implementation("androidx.compose.ui:ui-tooling:1.6.8")
-    implementation("androidx.compose.ui:ui-tooling-preview:1.6.8")
-    implementation("androidx.compose.material:material:1.6.8")
-    implementation("androidx.compose.ui:ui:1.6.8")
+    implementation(libs.google.exoplayer)
 
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     //noinspection UseTomlInstead
     implementation("com.google.firebase:firebase-analytics")
 
     implementation("com.google.accompanist:accompanist-drawablepainter:0.35.0-alpha")
-
-    implementation("androidx.compose.material3:material3:1.2.1")
 
     implementation(libs.google.firebase.firestore.ktx)
     implementation(libs.google.firebase.auth.ktx)
@@ -123,9 +103,6 @@ dependencies {
     implementation (libs.firebase.storage)
 
     implementation (libs.androidx.palette)
-
-    implementation (libs.google.exoplayer)
-
 
     implementation (libs.core)
 
@@ -137,7 +114,6 @@ dependencies {
 
 
 
-    implementation ("com.google.android.gms:play-services-auth:19.2.0")
 
 
 

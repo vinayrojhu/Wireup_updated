@@ -26,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -42,14 +43,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.example.wireup.Navigation.NavigationItem
 import com.example.wireup.R
+import com.example.wireup.model.VideoPodcast
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Components.TabView
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 
 data class AudioPodcast(
     val title: String,
@@ -58,18 +60,12 @@ data class AudioPodcast(
     val duration: Int
 )
 
-data class VideoPodcast(
-    val id: String,
-    val imageUrl: String,
-    val title: String,
-    val videoLink: String
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PodcastScreen(navController: NavHostController) {
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val video1 by viewModel.video.observeAsState(initial = emptyList())
+    LaunchedEffect(Unit) { viewModel.loadVideoPodcasts() }
 
     var selectedTabIndex by remember {
         mutableIntStateOf(0)

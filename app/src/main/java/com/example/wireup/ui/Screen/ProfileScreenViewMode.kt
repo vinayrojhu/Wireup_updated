@@ -42,11 +42,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.rememberImagePainter
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 
@@ -54,7 +54,7 @@ import com.google.firebase.storage.FirebaseStorage
 @Composable
 fun ProfileScreenViewMode(navController: NavHostController, userId: String) {
 
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val tweets by viewModel.tweets.observeAsState(initial = emptyList())
     val users by viewModel.users.observeAsState(initial = emptyList())
 
@@ -65,6 +65,7 @@ fun ProfileScreenViewMode(navController: NavHostController, userId: String) {
     val followerCount = viewModel.followerCount.collectAsState().value
 
     LaunchedEffect(Unit) {
+        viewModel.loadUsers()
         FirebaseStorage.getInstance().reference.child("users/$userId/profile_image").downloadUrl.addOnSuccessListener { uri ->
             userImage.value = uri
         }

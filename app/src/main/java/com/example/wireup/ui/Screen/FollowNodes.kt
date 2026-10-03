@@ -23,23 +23,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.wireup.Navigation.NavigationItem
 import com.example.wireup.R
 import com.example.wireup.repository.FirestoreRepository
 import com.example.wireup.ui.Screen.profile.UserViewModel
-import com.example.wireup.ui.Screen.viewmodel.UserViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FollowNodes(navController: NavHostController) {
 
-    val viewModel: UserViewModel = viewModel(factory = UserViewModelFactory(FirestoreRepository()))
+    val viewModel: UserViewModel = hiltViewModel()
     val tweets by viewModel.tweets.observeAsState(initial = emptyList())
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid.toString()
     val users by viewModel.users.observeAsState(initial = emptyList())
     LaunchedEffect(Unit) {
+        viewModel.loadUsers()
         viewModel.fetchTweetsForCurrentUser(currentUserId)
     }
 
