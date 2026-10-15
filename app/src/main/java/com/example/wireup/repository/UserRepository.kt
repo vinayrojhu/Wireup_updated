@@ -530,8 +530,9 @@ class FirestoreRepository @Inject constructor() {
 
     fun addComment(tweetId: String, comment: Comment): LiveData<Boolean> {
         val liveData = MutableLiveData<Boolean>()
-        val tweetRef = firestore.collection("tweets").document(tweetId)
-        tweetRef.update("comments", FieldValue.arrayUnion(comment))
+        val commentRef = firestore.collection("tweets").document(tweetId)
+            .collection("comments").document(comment.id)
+        commentRef.set(comment)
             .addOnSuccessListener {
                 liveData.value = true
             }
@@ -544,95 +545,57 @@ class FirestoreRepository @Inject constructor() {
 
     fun getComments(tweetId: String): LiveData<List<Comment>> {
         val liveData = MutableLiveData<List<Comment>>()
-        val tweetRef = firestore.collection("tweets").document(tweetId)
-
-        tweetRef.get().addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val document = task.result
-                if (document != null) {
-                    val commentsData = document.get("comments") as? List<Map<String, Any>>
-                    val commentList = commentsData?.map { commentMap ->
-                        Comment(
-                            id = commentMap["id"] as? String ?: "",
-                            description = commentMap["description"] as? String ?: "",
-                            userId = commentMap["userId"] as? String ?: "",
-                            imageUrl = commentMap["imageUrl"] as? String,
-                            likeCount = (commentMap["likeCount"] as? Long)?.toInt() ?: 0,
-                            likes = (commentMap["likes"] as? List<String>)?.toMutableList() ?: mutableListOf(),
-                            timeStamp = (commentMap["timeStamp"] as? Long) ?: 0L
-                        )
-                    } ?: emptyList()
-                    liveData.value = commentList
-                } else {
-                    liveData.value = emptyList()
+        firestore.collection("tweets").document(tweetId).collection("comments")
+            .orderBy("timeStamp", Query.Direction.ASCENDING)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                liveData.value = snapshot.documents.map { document ->
+                    Comment(
+                        id = document.id,
+                        description = document.getString("description") ?: "",
+                        userId = document.getString("userId") ?: "",
+                        imageUrl = document.getString("imageUrl"),
+                        likeCount = document.getLong("likeCount")?.toInt() ?: 0,
+                        likes = (document.get("likes") as? List<String>)?.toMutableList() ?: mutableListOf(),
+                        timeStamp = document.getLong("timeStamp") ?: 0L
+                    )
                 }
-            } else {
+            }
+            .addOnFailureListener {
                 liveData.value = emptyList()
             }
-        }
         return liveData
     }
 
     fun likeComment(tweetId: String, commentId: String, userId: String): LiveData<Boolean> {
         val liveData = MutableLiveData<Boolean>()
-        val tweetRef = firestore.collection("tweets").document(tweetId)
+        val commentRef = firestore.collection("tweets").document(tweetId)
+            .collection("comments").document(commentId)
 
         Log.d("CommentRepository", "Attempting to like comment with id: $commentId by user: $userId")
 
-        // Retrieve the tweet document
-        tweetRef.get().addOnSuccessListener { document ->
+        commentRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
-                val comments = document.get("comments") as? List<Map<String, Any>> ?: emptyList()
-                val commentToUpdate = comments.find { it["id"] == commentId }
-
-                if (commentToUpdate != null) {
-                    Log.d("CommentRepository", "Comment found: $commentToUpdate")
-
-                    // Check if the user has already liked the comment
-                    val likes = commentToUpdate["likes"] as? List<String> ?: emptyList()
-                    if (!likes.contains(userId)) {
-                        Log.d("CommentRepository", "User  has not liked the comment yet. Liking now...")
-
-                        // Update the likes array and increment the like count
-                        val updatedLikes = likes + userId
-                        val updatedLikeCount = (commentToUpdate["likeCount"] as? Long ?: 0) + 1
-
-                        // Create a new comments array with the updated comment
-                        val updatedComments = comments.map { comment ->
-                            if (comment["id"] == commentId) {
-                                comment.toMutableMap().apply {
-                                    put("likes", updatedLikes)
-                                    put("likeCount", updatedLikeCount)
-                                }
-                            } else {
-                                comment
-                            }
+                val likes = document.get("likes") as? List<String> ?: emptyList()
+                if (!likes.contains(userId)) {
+                    val updatedLikes = likes + userId
+                    val updatedLikeCount = (document.getLong("likeCount") ?: 0) + 1
+                    commentRef.update("likes", updatedLikes, "likeCount", updatedLikeCount)
+                        .addOnSuccessListener { liveData.postValue(true) }
+                        .addOnFailureListener { exception ->
+                            Log.d("CommentRepository", "Error liking comment", exception)
+                            liveData.postValue(false)
                         }
-
-                        // Update the tweet document with the new comments array
-                        tweetRef.update("comments", updatedComments)
-                            .addOnSuccessListener {
-                                Log.d("CommentRepository", "Successfully liked the comment.")
-                                liveData.postValue(true)
-                            }
-                            .addOnFailureListener { exception ->
-                                Log.d("CommentRepository", "Error liking comment", exception)
-                                liveData.postValue(false)
-                            }
-                    } else {
-                        Log.d("CommentRepository", "User  has already liked the comment.")
-                        liveData.postValue(false)
-                    }
                 } else {
-                    Log.d("CommentRepository", "Comment does not exist.")
+                    Log.d("CommentRepository", "User has already liked the comment.")
                     liveData.postValue(false)
                 }
             } else {
-                Log.d("CommentRepository", "Tweet does not exist.")
+                Log.d("CommentRepository", "Comment does not exist.")
                 liveData.postValue(false)
             }
         }.addOnFailureListener { exception ->
-            Log.d("CommentRepository", "Error finding tweet", exception)
+            Log.d("CommentRepository", "Error finding comment", exception)
             liveData.postValue(false)
         }
 
@@ -641,22 +604,11 @@ class FirestoreRepository @Inject constructor() {
 
     fun hasComments(tweetId: String): LiveData<Boolean> {
         val liveData = MutableLiveData<Boolean>()
-        val tweetRef = firestore.collection("tweets").document(tweetId)
-
-        tweetRef.get().addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val document = task.result
-                if (document != null) {
-                    // Check if the comments field exists and is not empty
-                    val commentsData = document.get("comments") as? List<*>
-                    liveData.value = commentsData != null && commentsData.isNotEmpty()
-                } else {
-                    liveData.value = false
-                }
-            } else {
-                liveData.value = false
-            }
-        }
+        firestore.collection("tweets").document(tweetId).collection("comments")
+            .limit(1)
+            .get()
+            .addOnSuccessListener { liveData.value = !it.isEmpty }
+            .addOnFailureListener { liveData.value = false }
         return liveData
     }
 }

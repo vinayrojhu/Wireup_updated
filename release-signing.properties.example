@@ -1,0 +1,6 @@
+# Copy this file to release-signing.properties and replace every value.
+# The real file is ignored by Git; back up the keystore and credentials securely.
+storeFile=keystore/wireup-upload.jks
+storePassword=CHANGE_ME
+keyAlias=wireup-upload
+keyPassword=CHANGE_ME

@@ -200,7 +200,9 @@ class UserViewModel @Inject constructor(
     private fun uploadImageToStorage(imageUri: Uri): LiveData<String> {
         val liveData = MutableLiveData<String>()
         val storageRef = FirebaseStorage.getInstance().reference
-        val imageRef = storageRef.child("images/${UUID.randomUUID()}.jpg")
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+            ?: return MutableLiveData("")
+        val imageRef = storageRef.child("images/$userId/${UUID.randomUUID()}.jpg")
         imageRef.putFile(imageUri)
             .addOnSuccessListener { taskSnapshot ->
                 taskSnapshot.storage.downloadUrl.addOnSuccessListener { uri ->
